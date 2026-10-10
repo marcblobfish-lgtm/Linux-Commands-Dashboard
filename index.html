@@ -3,1064 +3,903 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Linux Befehls-Dashboard</title>
+    <title>🐧 Linux Befehls-Terminal</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&display=swap');
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
+        :root {
+            --terminal-bg: #0a0a0a;
+            --terminal-header: #1a1a1a;
+            --terminal-border: #2a2a2a;
+            --green: #00ff41;
+            --green-dim: #00cc33;
+            --amber: #ffb000;
+            --amber-dim: #cc8800;
+            --white: #e0e0e0;
+            --gray: #888;
+            --red: #ff4444;
+            --cyan: #00ffff;
+        }
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #0d1117;
-            color: #c9d1d9;
-            line-height: 1.6;
+            font-family: 'Fira Code', monospace;
+            background-color: #000;
+            color: var(--green);
+            min-height: 100vh;
+            overflow-x: hidden;
         }
 
-        .header {
-            background: linear-gradient(135deg, #161b22 0%, #0d1117 100%);
-            padding: 2rem;
-            text-align: center;
-            border-bottom: 2px solid #238636;
+        /* Scanline Effect */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 0, 0, 0.15),
+                rgba(0, 0, 0, 0.15) 1px,
+                transparent 1px,
+                transparent 2px
+            );
+            pointer-events: none;
+            z-index: 1000;
         }
 
-        .header h1 {
-            color: #58a6ff;
-            font-size: 2.5rem;
-            margin-bottom: 0.5rem;
+        /* Header */
+        .terminal-header {
+            background: var(--terminal-header);
+            border-bottom: 2px solid var(--green);
+            padding: 0.8rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
 
-        .header p {
-            color: #8b949e;
-            font-size: 1.1rem;
+        .terminal-title {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
         }
 
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 2rem;
+        .terminal-dots {
+            display: flex;
+            gap: 0.5rem;
         }
 
-        .categories {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .dot.red { background: var(--red); }
+        .dot.yellow { background: var(--amber); }
+        .dot.green { background: var(--green); }
+
+        .terminal-label {
+            color: var(--gray);
+            font-size: 0.9rem;
+        }
+
+        .terminal-label span {
+            color: var(--green);
+        }
+
+        /* Stats */
+        .stats-bar {
+            background: #0f0f0f;
+            border-bottom: 1px solid var(--terminal-border);
+            padding: 0.6rem 1.5rem;
+            display: flex;
             gap: 2rem;
+            font-size: 0.85rem;
+            color: var(--gray);
         }
 
-        .category {
-            background-color: #161b22;
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .stat-value {
+            color: var(--amber);
+            font-weight: 600;
+        }
+
+        /* Main Container */
+        .main-container {
+            display: flex;
+            min-height: calc(100vh - 120px);
+        }
+
+        /* Sidebar - Categories as Tabs */
+        .sidebar {
+            width: 280px;
+            background: var(--terminal-header);
+            border-right: 2px solid var(--green);
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .category-tabs {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .category-tab {
+            padding: 1rem 1.5rem;
+            cursor: pointer;
+            border-bottom: 1px solid var(--terminal-border);
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            font-size: 0.9rem;
+            color: var(--gray);
+        }
+
+        .category-tab:hover {
+            background: rgba(0, 255, 65, 0.1);
+            color: var(--white);
+        }
+
+        .category-tab.active {
+            background: rgba(0, 255, 65, 0.15);
+            color: var(--green);
+            border-left: 4px solid var(--green);
+            font-weight: 600;
+        }
+
+        .tab-icon {
+            font-size: 1.3rem;
+        }
+
+        .tab-count {
+            margin-left: auto;
+            background: rgba(0, 255, 65, 0.2);
+            padding: 0.2rem 0.6rem;
             border-radius: 12px;
-            border: 1px solid #30363d;
-            overflow: hidden;
-            transition: border-color 0.3s ease;
+            font-size: 0.75rem;
+            color: var(--green);
         }
 
-        .category:hover {
-            border-color: #58a6ff;
+        .category-tab.active .tab-count {
+            background: var(--green);
+            color: #000;
         }
 
-        .category-header {
-            background-color: #1c2129;
-            padding: 1.2rem 1.5rem;
-            border-bottom: 2px solid #238636;
+        /* Content Area */
+        .content-area {
+            flex: 1;
+            padding: 1.5rem;
+            overflow-y: auto;
+            max-height: calc(100vh - 120px);
+        }
+
+        .active-category-header {
+            background: #0f0f0f;
+            padding: 1rem 1.5rem;
+            border-bottom: 2px solid var(--amber);
+            margin: -1.5rem -1.5rem 1.5rem -1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .active-category-title {
+            font-size: 1.3rem;
+            color: var(--amber);
             display: flex;
             align-items: center;
             gap: 0.8rem;
         }
 
-        .category-icon {
-            font-size: 1.8rem;
+        .command-count {
+            color: var(--gray);
+            font-size: 0.9rem;
         }
 
-        .category-title {
-            font-size: 1.4rem;
-            color: #58a6ff;
-            font-weight: 600;
+        /* Command Grid */
+        .command-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1rem;
         }
 
-        .commands {
-            padding: 1rem;
-        }
-
-        .command {
-            background-color: #0d1117;
-            border: 1px solid #30363d;
+        .command-card {
+            background: #0a0a0a;
+            border: 1px solid var(--terminal-border);
             border-radius: 8px;
-            margin-bottom: 0.8rem;
-            transition: all 0.2s ease;
             overflow: hidden;
+            transition: all 0.2s;
+            position: relative;
         }
 
-        .command:hover {
-            border-color: #58a6ff;
-            background-color: #161b22;
+        .command-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 3px;
+            height: 100%;
+            background: var(--terminal-border);
+            transition: background 0.2s;
+        }
+
+        .command-card:hover {
+            border-color: var(--green);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 255, 65, 0.1);
+        }
+
+        .command-card:hover::before {
+            background: var(--green);
         }
 
         .command-header {
+            padding: 0.8rem 1rem;
+            background: #111;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0.8rem 1rem;
-            cursor: pointer;
+            border-bottom: 1px solid var(--terminal-border);
         }
 
         .command-text {
-            font-family: 'Fira Code', 'Consolas', monospace;
-            color: #7ee787;
-            font-size: 0.95rem;
+            color: var(--green);
+            font-size: 0.85rem;
             font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .prompt-symbol {
+            color: var(--amber);
+            font-weight: 700;
         }
 
         .copy-btn {
-            background-color: #238636;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            padding: 0.5rem 1rem;
+            background: transparent;
+            border: 1px solid var(--terminal-border);
+            color: var(--gray);
+            padding: 0.3rem 0.8rem;
+            border-radius: 4px;
             cursor: pointer;
-            font-size: 0.85rem;
-            font-weight: 500;
-            transition: all 0.2s ease;
-            white-space: nowrap;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.75rem;
+            transition: all 0.2s;
         }
 
         .copy-btn:hover {
-            background-color: #2ea043;
-            transform: translateY(-1px);
-        }
-
-        .copy-btn:active {
-            transform: translateY(0);
+            background: var(--green);
+            color: #000;
+            border-color: var(--green);
         }
 
         .copy-btn.copied {
-            background-color: #58a6ff;
+            background: var(--amber);
+            border-color: var(--amber);
+            color: #000;
         }
 
         .command-description {
-            padding: 0.8rem 1rem 0.8rem 1rem;
-            color: #8b949e;
-            font-size: 0.9rem;
-            border-top: 1px solid #21262d;
+            padding: 0.7rem 1rem;
+            color: var(--gray);
+            font-size: 0.8rem;
+            line-height: 1.5;
         }
 
-        .search-box {
-            margin-bottom: 2rem;
+        .command-description::before {
+            content: '$ ';
+            color: var(--amber);
+        }
+
+        /* Search Bar */
+        .search-container {
             position: sticky;
             top: 0;
             z-index: 10;
-            background-color: #0d1117;
-            padding: 1rem 0;
+            background: #0a0a0a;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--terminal-border);
         }
 
         .search-input {
             width: 100%;
-            padding: 1rem 1.5rem;
-            border: 2px solid #30363d;
-            border-radius: 12px;
-            background-color: #161b22;
-            color: #c9d1d9;
-            font-size: 1.1rem;
+            padding: 0.8rem 1rem 0.8rem 2.5rem;
+            background: #111;
+            border: 1px solid var(--terminal-border);
+            border-radius: 6px;
+            color: var(--green);
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9rem;
             outline: none;
-            transition: border-color 0.3s ease;
+            transition: border-color 0.2s;
         }
 
         .search-input:focus {
-            border-color: #58a6ff;
+            border-color: var(--green);
         }
 
         .search-input::placeholder {
-            color: #8b949e;
+            color: #555;
         }
 
-        .stats {
-            text-align: center;
-            margin-bottom: 2rem;
-            padding: 1.5rem;
-            background-color: #161b22;
-            border-radius: 12px;
-            border: 1px solid #30363d;
+        .search-wrapper {
+            position: relative;
         }
 
-        .stats h2 {
-            color: #58a6ff;
-            font-size: 1.8rem;
-            margin-bottom: 0.5rem;
+        .search-icon {
+            position: absolute;
+            left: 0.8rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray);
         }
 
-        .stats p {
-            color: #8b949e;
-            font-size: 1.1rem;
+        /* Quick Actions */
+        .quick-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.8rem;
+            flex-wrap: wrap;
         }
 
+        .quick-btn {
+            background: #111;
+            border: 1px solid var(--terminal-border);
+            color: var(--gray);
+            padding: 0.4rem 0.8rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.75rem;
+            transition: all 0.2s;
+        }
+
+        .quick-btn:hover {
+            border-color: var(--green);
+            color: var(--green);
+            background: rgba(0, 255, 65, 0.1);
+        }
+
+        /* Animations */
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        .cursor {
+            animation: blink 1s infinite;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .command-card {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        /* Responsive */
         @media (max-width: 768px) {
-            .container {
-                padding: 1rem;
+            .main-container {
+                flex-direction: column;
             }
 
-            .categories {
+            .sidebar {
+                width: 100%;
+                border-right: none;
+                border-bottom: 2px solid var(--green);
+                max-height: 200px;
+            }
+
+            .category-tabs {
+                flex-direction: row;
+                overflow-x: auto;
+            }
+
+            .category-tab {
+                white-space: nowrap;
+                border-bottom: none;
+                border-right: 1px solid var(--terminal-border);
+            }
+
+            .content-area {
+                max-height: none;
+            }
+
+            .command-grid {
                 grid-template-columns: 1fr;
             }
+        }
 
-            .header h1 {
-                font-size: 2rem;
-            }
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0a0a0a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--green-dim);
+        }
+
+        /* No Results */
+        .no-results {
+            text-align: center;
+            padding: 3rem;
+            color: var(--gray);
+        }
+
+        .no-results-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: var(--green);
+            color: #000;
+            padding: 0.8rem 1.5rem;
+            border-radius: 6px;
+            font-weight: 600;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>🐧 Linux Befehls-Dashboard</h1>
-        <p>Debian & Ubuntu – Die wichtigsten Befehle auf einen Blick</p>
+    <!-- Terminal Header -->
+    <div class="terminal-header">
+        <div class="terminal-title">
+            <div class="terminal-dots">
+                <div class="dot red"></div>
+                <div class="dot yellow"></div>
+                <div class="dot green"></div>
+            </div>
+            <div class="terminal-label">root@debian:~/commands <span class="cursor">_</span></div>
+        </div>
+        <div style="color: var(--gray); font-size: 0.8rem;">v2.0 Terminal Edition</div>
     </div>
 
-    <div class="container">
-        <div class="stats">
-            <h2>📊 Übersicht</h2>
-            <p>Wähle eine Kategorie und kopiere dir den Befehl mit einem Klick!</p>
+    <!-- Stats Bar -->
+    <div class="stats-bar">
+        <div class="stat-item">📁 Kategorien: <span class="stat-value" id="catCount">0</span></div>
+        <div class="stat-item">💻 Befehle: <span class="stat-value" id="cmdCount">0</span></div>
+        <div class="stat-item">📊 Kategorie: <span class="stat-value" id="currentCat">Alle</span></div>
+    </div>
+
+    <div class="main-container">
+        <!-- Sidebar Navigation -->
+        <div class="sidebar">
+            <div class="category-tabs" id="categoryTabs">
+                <!-- Tabs will be inserted here by JS -->
+            </div>
         </div>
 
-        <div class="search-box">
-            <input type="text" class="search-input" id="searchInput" placeholder="🔍 Befehl durchsuchen (z.B. 'update', 'systemctl', 'apt')...">
-        </div>
-
-        <div class="categories">
-            <!-- Systemverwaltung -->
-            <div class="category" data-category="system">
-                <div class="category-header">
-                    <span class="category-icon">⚙️</span>
-                    <h2 class="category-title">Systemverwaltung</h2>
+        <!-- Main Content -->
+        <div class="content-area">
+            <!-- Search -->
+            <div class="search-container">
+                <div class="search-wrapper">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" class="search-input" id="searchInput" placeholder="Befehl suchen... (z.B. 'update', 'systemctl')">
                 </div>
-                <div class="commands">
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">whoami</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Zeigt den aktuellen Benutzernamen an</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">date</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Zeigt aktuelles Datum und Uhrzeit an</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">uptime</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Zeigt an, wie lange das System läuft</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">hostname</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Zeigt den Hostnamen des Systems</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">uname -a</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Zeigt alle Systeminformationen (Kernel, Architektur, etc.)</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">lscpu</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Zeigt detaillierte CPU-Informationen</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">free -h</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Zeigt den Speicherverbrauch in human-readable Format</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">df -h</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Zeigt belegten und freien Speicherplatz</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">lsblk</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Zeigt alle Blockgeräte (Festplatten, Partitionen)</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">top</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Echtzeit-Monitoring der Systemressourcen</div>
-                    </div>
+                <div class="quick-actions">
+                    <button class="quick-btn" onclick="filterByCategory('system')">System</button>
+                    <button class="quick-btn" onclick="filterByCategory('apt')">APT</button>
+                    <button class="quick-btn" onclick="filterByCategory('network')">Netzwerk</button>
+                    <button class="quick-btn" onclick="filterByCategory('docker')">Docker</button>
+                    <button class="quick-btn" onclick="filterByCategory('security')">Sicherheit</button>
                 </div>
             </div>
 
-            <!-- Paketverwaltung (APT) -->
-            <div class="category" data-category="apt">
-                <div class="category-header">
-                    <span class="category-icon">📦</span>
-                    <h2 class="category-title">Paketverwaltung (APT)</h2>
+            <!-- Active Category Header -->
+            <div class="active-category-header">
+                <div class="active-category-title">
+                    <span id="activeIcon">🐧</span>
+                    <span id="activeCategoryName">Alle Befehle</span>
                 </div>
-                <div class="commands">
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">sudo apt update</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Aktualisiert die Paketlisten</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">sudo apt upgrade</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Aktualisiert alle installierten Pakete</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">sudo apt install [paket]</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Installiert ein Paket (z.B. nginx, curl)</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">sudo apt remove [paket]</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Deinstalliert ein Paket</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">sudo apt autoremove</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Entfernt nicht mehr benötigte Abhängigkeiten</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">sudo apt full-upgrade</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Komplettes Systemupgrade (auch mit Paketwechsel)</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">apt list --installed</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Listet alle installierten Pakete</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">apt search [suchbegriff]</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Sucht nach Paketen</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">dpkg -l | grep [suchbegriff]</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Sucht nach installierten Paketen</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">sudo apt clean</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Löscht heruntergeladene .deb-Dateien</div>
-                    </div>
-                </div>
+                <div class="command-count" id="commandCount">0 Befehle</div>
             </div>
 
-            <!-- Systemctl/Dienste -->
-            <div class="category" data-category="services">
-                <div class="category-header">
-                    <span class="category-icon">🔄</span>
-                    <h2 class="category-title">Systemctl & Dienste</h2>
-                </div>
-                <div class="commands">
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">systemctl status [dienst]</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Prüft den Status eines Dienstes</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">sudo systemctl start [dienst]</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Startet einen Dienst</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">sudo systemctl stop [dienst]</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Stoppet einen Dienst</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">sudo systemctl restart [dienst]</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Startet einen Dienst neu</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">sudo systemctl enable [dienst]</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Aktiviert einen Dienst zum Starten beim Booten</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">sudo systemctl disable [dienst]</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Deaktiviert einen Dienst vom Starten beim Booten</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">systemctl list-units --type=service</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Listet alle Dienste auf</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">journalctl -u [dienst]</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Zeigt Logs eines Dienstes</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Dateiverwaltung -->
-            <div class="category" data-category="files">
-                <div class="category-header">
-                    <span class="category-icon">📁</span>
-                    <h2 class="category-title">Dateiverwaltung</h2>
-                </div>
-                <div class="commands">
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">ls -la</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Listet alle Dateien detailliert auf</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">cd [verzeichnis]</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Wechselt in ein Verzeichnis</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">mkdir [name]</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Erstellt ein neues Verzeichnis</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">rm [datei]</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Löscht eine Datei</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">rm -r [verzeichnis]</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Löscht ein Verzeichnis rekursiv</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">cp [quelle] [ziel]</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Kopiert eine Datei</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">mv [quelle] [ziel]</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Verschiebt/umbenennt eine Datei</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">touch [datei]</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Erstellt eine leere Datei</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">cat [datei]</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Zeigt den Inhalt einer Datei</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">find / -name [suchbegriff]</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Sucht nach Dateien im System</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">du -sh [verzeichnis]</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Zeigt den Speicherplatz eines Verzeichnisses</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">wc -l [datei]</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Zählt Zeilen in einer Datei</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Netzwerkkonfiguration -->
-            <div class="category" data-category="network">
-                <div class="category-header">
-                    <span class="category-icon">🌐</span>
-                    <h2 class="category-title">Netzwerk</h2>
-                </div>
-                <div class="commands">
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">ip a</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Zeigt alle Netzwerkinterfaces</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">ip addr show</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Zeigt IP-Adressen der Interfaces</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">ip route</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Zeigt die Routing-Tabelle</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">ping [host]</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Testet die Erreichbarkeit</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">ifconfig</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Zeigt Netzwerkkonfiguration (wenn installiert)</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">netstat -tuln</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Zeigt offene Ports</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">ss -tuln</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Moderne Alternative zu netstat</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">curl ifconfig.me</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Zeigt die öffentliche IP-Adresse</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">wget [url]</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Lädt Dateien aus dem Internet herunter</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">nslookup [domain]</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Löst Domain-Namen in IPs auf</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">traceroute [host]</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Zeigt den Weg der Pakete</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Berechtigungen -->
-            <div class="category" data-category="permissions">
-                <div class="category-header">
-                    <span class="category-icon">🔐</span>
-                    <h2 class="category-title">Berechtigungen & Nutzer</h2>
-                </div>
-                <div class="commands">
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">chmod 755 [datei]</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Ändert Dateiberechtigungen</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">chmod -R 755 [verzeichnis]</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Ändert Berechtigungen rekursiv</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">chown [nutzer]:[gruppe] [datei]</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Ändert den Datei-Eigentümer</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">sudo chown -R [nutzer]:[gruppe] [verzeichnis]</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Ändert Eigentümer rekursiv</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">sudo useradd -m [nutzer]</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Erstellt einen neuen Benutzer</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">sudo usermod -aG sudo [nutzer]</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Fügt Benutzer zur sudo-Gruppe hinzu</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">sudo passwd [nutzer]</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Ändert das Passwort eines Benutzers</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">sudo visudo</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Bearbeiten der sudoers-Datei</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Git -->
-            <div class="category" data-category="git">
-                <div class="category-header">
-                    <span class="category-icon">🔀</span>
-                    <h2 class="category-title">Git & Version Control</h2>
-                </div>
-                <div class="commands">
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">git init</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Initialisiert ein neues Git-Repository</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">git clone [url]</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Klont ein Repository</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">git add .</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Fügt alle Änderungen zur Staging-Area hinzu</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">git commit -m "Nachricht"</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Kommitiert Änderungen mit Nachricht</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">git push -u origin main</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Pushed Änderungen zu Remote</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">git pull</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Holt und merged Änderungen von Remote</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">git status</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Zeigt den aktuellen Status</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">git branch</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Listet alle Branches</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">git checkout -b [name]</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Erstellt und wechselt zu neuem Branch</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Docker -->
-            <div class="category" data-category="docker">
-                <div class="category-header">
-                    <span class="category-icon">🐳</span>
-                    <h2 class="category-title">Docker</h2>
-                </div>
-                <div class="commands">
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">sudo docker ps</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Zeigt alle laufenden Container</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">sudo docker images</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Zeigt alle Docker-Images</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">sudo docker pull [image]</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Lädt ein Docker-Image herunter</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">sudo docker run -d -p 80:80 [image]</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Startet einen Container im Hintergrund</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">sudo docker stop [container]</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Stoppt einen Container</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">sudo docker rm [container]</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Löscht einen Container</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">sudo docker logs [container]</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Zeigt die Logs eines Containers</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">sudo docker build -t [name] .</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Baut ein neues Docker-Image</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Firewall -->
-            <div class="category" data-category="firewall">
-                <div class="category-header">
-                    <span class="category-icon">🛡️</span>
-                    <h2 class="category-title">Firewall & Sicherheit</h2>
-                </div>
-                <div class="commands">
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">sudo ufw status</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Zeigt den Status der UFW-Firewall</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">sudo ufw allow 80</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Ermöglicht Port 80</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">sudo ufw enable</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Aktiviert die UFW-Firewall</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">sudo ufw disable</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Deaktiviert die UFW-Firewall</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">sudo ufw allow ssh</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Ermöglicht SSH-Zugriff</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">sudo ufw deny 23</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Blockiert Port 23 (Telnet)</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Cron Jobs -->
-            <div class="category" data-category="cron">
-                <div class="category-header">
-                    <span class="category-icon">⏰</span>
-                    <h2 class="category-title">Cron Jobs & Automatisierung</h2>
-                </div>
-                <div class="commands">
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">crontab -e</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Bearbeiten der Cron-Jobs</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">crontab -l</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Listet die Cron-Jobs</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">0 5 * * * /script.sh</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Cron-Beispiel: Jeden Tag um 5 Uhr</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">*/5 * * * * /script.sh</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Alle 5 Minuten ausführen</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">sudo service cron restart</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Startet den Cron-Dienst neu</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Logs & Debugging -->
-            <div class="category" data-category="logs">
-                <div class="category-header">
-                    <span class="category-icon">📋</span>
-                    <h2 class="category-title">Logs & Debugging</h2>
-                </div>
-                <div class="commands">
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">journalctl -xe</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Zeigt die neuesten Systemlogs</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">tail -f /var/log/syslog</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Überwacht Logs in Echtzeit</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">cat /var/log/auth.log</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Zeigt Authentifizierungslogs</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">grep -i "error" /var/log/syslog</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Sucht nach "error" in Logs</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">dmesg | tail</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Zeigt Kernel-Logs</div>
-                    </div>
-                    <div class="command">
-                        <div class="command-header">
-                            <span class="command-text">lsof -i :80</span>
-                            <button class="copy-btn" onclick="copyCommand(this)">Kopieren</button>
-                        </div>
-                        <div class="command-description">Zeigt Prozesse auf Port 80</div>
-                    </div>
-                </div>
+            <!-- Command Grid -->
+            <div class="command-grid" id="commandGrid">
+                <!-- Commands will be inserted here by JS -->
             </div>
         </div>
     </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast">✅ Befehl kopiert!</div>
 
     <script>
-        function copyCommand(button) {
-            const commandText = button.parentElement.querySelector('.command-text').textContent;
-            
-            // Kopiere in die Zwischenablage
-            navigator.clipboard.writeText(commandText).then(() => {
-                // Zeige "Kopiert!" an
-                button.textContent = 'Kopiert!';
-                button.classList.add('copied');
-                
-                // Ändere zurück nach 2 Sekunden
+        // Command Data
+        const commands = [
+            // Systemverwaltung
+            { category: 'system', icon: '⚙️', command: 'whoami', description: 'Zeigt den aktuellen Benutzernamen' },
+            { category: 'system', icon: '⚙️', command: 'date', description: 'Zeigt aktuelles Datum und Uhrzeit' },
+            { category: 'system', icon: '⚙️', command: 'uptime', description: 'Zeigt an, wie lange das System läuft' },
+            { category: 'system', icon: '⚙️', command: 'hostname', description: 'Zeigt den Hostnamen des Systems' },
+            { category: 'system', icon: '⚙️', command: 'uname -a', description: 'Zeigt alle Systeminformationen (Kernel, Architektur, etc.)' },
+            { category: 'system', icon: '⚙️', command: 'lscpu', description: 'Zeigt detaillierte CPU-Informationen' },
+            { category: 'system', icon: '⚙️', command: 'free -h', description: 'Zeigt den Speicherverbrauch in human-readable Format' },
+            { category: 'system', icon: '⚙️', command: 'df -h', description: 'Zeigt belegten und freien Speicherplatz' },
+            { category: 'system', icon: '⚙️', command: 'lsblk', description: 'Zeigt alle Blockgeräte (Festplatten, Partitionen)' },
+            { category: 'system', icon: '⚙️', command: 'top', description: 'Echtzeit-Monitoring der Systemressourcen' },
+            { category: 'system', icon: '⚙️', command: 'htop', description: 'Interaktiver Prozess-Viewer (muss installiert werden)' },
+            { category: 'system', icon: '⚙️', command: 'dmesg', description: 'Zeigt Kernel-Messages' },
+
+            // APT Paketverwaltung
+            { category: 'apt', icon: '📦', command: 'sudo apt update', description: 'Aktualisiert die Paketlisten' },
+            { category: 'apt', icon: '📦', command: 'sudo apt upgrade', description: 'Aktualisiert alle installierten Pakete' },
+            { category: 'apt', icon: '📦', command: 'sudo apt install [paket]', description: 'Installiert ein Paket (z.B. nginx, curl)' },
+            { category: 'apt', icon: '📦', command: 'sudo apt remove [paket]', description: 'Deinstalliert ein Paket' },
+            { category: 'apt', icon: '📦', command: 'sudo apt autoremove', description: 'Entfernt nicht mehr benötigte Abhängigkeiten' },
+            { category: 'apt', icon: '📦', command: 'sudo apt full-upgrade', description: 'Komplettes Systemupgrade (auch mit Paketwechsel)' },
+            { category: 'apt', icon: '📦', command: 'apt list --installed', description: 'Listet alle installierten Pakete' },
+            { category: 'apt', icon: '📦', command: 'apt search [suchbegriff]', description: 'Sucht nach Paketen' },
+            { category: 'apt', icon: '📦', command: 'dpkg -l | grep [suchbegriff]', description: 'Sucht nach installierten Paketen' },
+            { category: 'apt', icon: '📦', command: 'sudo apt clean', description: 'Löscht heruntergeladene .deb-Dateien' },
+            { category: 'apt', icon: '📦', command: 'sudo dpkg -i [paket].deb', description: 'Installiert ein lokales .deb-Paket' },
+            { category: 'apt', icon: '📦', command: 'apt-cache policy [paket]', description: 'Zeigt Installationsstatus und Versionen' },
+
+            // Systemctl/Dienste
+            { category: 'services', icon: '🔄', command: 'systemctl status [dienst]', description: 'Prüft den Status eines Dienstes' },
+            { category: 'services', icon: '🔄', command: 'sudo systemctl start [dienst]', description: 'Startet einen Dienst' },
+            { category: 'services', icon: '🔄', command: 'sudo systemctl stop [dienst]', description: 'Stoppet einen Dienst' },
+            { category: 'services', icon: '🔄', command: 'sudo systemctl restart [dienst]', description: 'Startet einen Dienst neu' },
+            { category: 'services', icon: '🔄', command: 'sudo systemctl enable [dienst]', description: 'Aktiviert einen Dienst zum Starten beim Booten' },
+            { category: 'services', icon: '🔄', command: 'sudo systemctl disable [dienst]', description: 'Deaktiviert einen Dienst vom Starten beim Booten' },
+            { category: 'services', icon: '🔄', command: 'systemctl list-units --type=service', description: 'Listet alle Dienste auf' },
+            { category: 'services', icon: '🔄', command: 'journalctl -u [dienst]', description: 'Zeigt Logs eines Dienstes' },
+            { category: 'services', icon: '🔄', command: 'systemctl list-units --state=failed', description: 'Zeigt alle fehlgeschlagenen Dienste' },
+
+            // Dateiverwaltung
+            { category: 'files', icon: '📁', command: 'ls -la', description: 'Listet alle Dateien detailliert auf' },
+            { category: 'files', icon: '📁', command: 'cd [verzeichnis]', description: 'Wechselt in ein Verzeichnis' },
+            { category: 'files', icon: '📁', command: 'mkdir [name]', description: 'Erstellt ein neues Verzeichnis' },
+            { category: 'files', icon: '📁', command: 'mkdir -p [pfad]', description: 'Erstellt Verzeichnis mit allen Eltern-Verzeichnissen' },
+            { category: 'files', icon: '📁', command: 'rm [datei]', description: 'Löscht eine Datei' },
+            { category: 'files', icon: '📁', command: 'rm -r [verzeichnis]', description: 'Löscht ein Verzeichnis rekursiv' },
+            { category: 'files', icon: '📁', command: 'cp [quelle] [ziel]', description: 'Kopiert eine Datei' },
+            { category: 'files', icon: '📁', command: 'cp -r [quelle] [ziel]', description: 'Kopiert ein Verzeichnis rekursiv' },
+            { category: 'files', icon: '📁', command: 'mv [quelle] [ziel]', description: 'Verschiebt/umbenennt eine Datei' },
+            { category: 'files', icon: '📁', command: 'touch [datei]', description: 'Erstellt eine leere Datei' },
+            { category: 'files', icon: '📁', command: 'cat [datei]', description: 'Zeigt den Inhalt einer Datei' },
+            { category: 'files', icon: '📁', command: 'find / -name [suchbegriff]', description: 'Sucht nach Dateien im System' },
+            { category: 'files', icon: '📁', command: 'du -sh [verzeichnis]', description: 'Zeigt den Speicherplatz eines Verzeichnisses' },
+            { category: 'files', icon: '📁', command: 'wc -l [datei]', description: 'Zählt Zeilen in einer Datei' },
+            { category: 'files', icon: '📁', command: 'tail -f [datei]', description: 'Überwacht eine Datei in Echtzeit' },
+            { category: 'files', icon: '📁', command: 'head -n 10 [datei]', description: 'Zeigt die ersten 10 Zeilen' },
+            { category: 'files', icon: '📁', command: 'ln -s [ziel] [link]', description: 'Erstellt einen symbolischen Link' },
+            { category: 'files', icon: '📁', command: 'pwd', description: 'Zeigt den aktuellen Pfad' },
+
+            // Netzwerk
+            { category: 'network', icon: '🌐', command: 'ip a', description: 'Zeigt alle Netzwerkinterfaces' },
+            { category: 'network', icon: '🌐', command: 'ip addr show', description: 'Zeigt IP-Adressen der Interfaces' },
+            { category: 'network', icon: '🌐', command: 'ip route', description: 'Zeigt die Routing-Tabelle' },
+            { category: 'network', icon: '🌐', command: 'ping [host]', description: 'Testet die Erreichbarkeit' },
+            { category: 'network', icon: '🌐', command: 'ifconfig', description: 'Zeigt Netzwerkkonfiguration (wenn installiert)' },
+            { category: 'network', icon: '🌐', command: 'netstat -tuln', description: 'Zeigt offene Ports' },
+            { category: 'network', icon: '🌐', command: 'ss -tuln', description: 'Moderne Alternative zu netstat' },
+            { category: 'network', icon: '🌐', command: 'curl ifconfig.me', description: 'Zeigt die öffentliche IP-Adresse' },
+            { category: 'network', icon: '🌐', command: 'wget [url]', description: 'Lädt Dateien aus dem Internet herunter' },
+            { category: 'network', icon: '🌐', command: 'nslookup [domain]', description: 'Löst Domain-Namen in IPs auf' },
+            { category: 'network', icon: '🌐', command: 'traceroute [host]', description: 'Zeigt den Weg der Pakete' },
+            { category: 'network', icon: '🌐', command: 'dig [domain]', description: 'DNS-Abfrage (modernere Alternative zu nslookup)' },
+            { category: 'network', icon: '🌐', command: 'ssh user@host', description: 'Verbindet sich per SSH zu einem Server' },
+            { category: 'network', icon: '🌐', command: 'scp [quelle] [ziel]', description: 'Kopiert Dateien per SSH' },
+            { category: 'network', icon: '🌐', command: 'wget -O - https://example.com', description: 'Lädt und zeigt Inhalt direkt an' },
+
+            // Berechtigungen
+            { category: 'permissions', icon: '🔐', command: 'chmod 755 [datei]', description: 'Ändert Dateiberechtigungen' },
+            { category: 'permissions', icon: '🔐', command: 'chmod -R 755 [verzeichnis]', description: 'Ändert Berechtigungen rekursiv' },
+            { category: 'permissions', icon: '🔐', command: 'chown [nutzer]:[gruppe] [datei]', description: 'Ändert den Datei-Eigentümer' },
+            { category: 'permissions', icon: '🔐', command: 'sudo chown -R [nutzer]:[gruppe] [verzeichnis]', description: 'Ändert Eigentümer rekursiv' },
+            { category: 'permissions', icon: '🔐', command: 'sudo useradd -m [nutzer]', description: 'Erstellt einen neuen Benutzer' },
+            { category: 'permissions', icon: '🔐', command: 'sudo usermod -aG sudo [nutzer]', description: 'Fügt Benutzer zur sudo-Gruppe hinzu' },
+            { category: 'permissions', icon: '🔐', command: 'sudo passwd [nutzer]', description: 'Ändert das Passwort eines Benutzers' },
+            { category: 'permissions', icon: '🔐', command: 'sudo visudo', description: 'Bearbeiten der sudoers-Datei' },
+            { category: 'permissions', icon: '🔐', command: 'chmod +x [skript]', description: 'Macht ein Skript ausführbar' },
+            { category: 'permissions', icon: '🔐', command: 'su - [nutzer]', description: 'Wechselt den Benutzer' },
+            { category: 'permissions', icon: '🔐', command: 'groups', description: 'Zeigt alle Gruppen des aktuellen Benutzers' },
+
+            // Git
+            { category: 'git', icon: '🔀', command: 'git init', description: 'Initialisiert ein neues Git-Repository' },
+            { category: 'git', icon: '🔀', command: 'git clone [url]', description: 'Klont ein Repository' },
+            { category: 'git', icon: '🔀', command: 'git add .', description: 'Fügt alle Änderungen zur Staging-Area hinzu' },
+            { category: 'git', icon: '🔀', command: 'git commit -m "Nachricht"', description: 'Kommitiert Änderungen mit Nachricht' },
+            { category: 'git', icon: '🔀', command: 'git push -u origin main', description: 'Pushed Änderungen zu Remote' },
+            { category: 'git', icon: '🔀', command: 'git pull', description: 'Holt und merged Änderungen von Remote' },
+            { category: 'git', icon: '🔀', command: 'git status', description: 'Zeigt den aktuellen Status' },
+            { category: 'git', icon: '🔀', command: 'git branch', description: 'Listet alle Branches' },
+            { category: 'git', icon: '🔀', command: 'git checkout -b [name]', description: 'Erstellt und wechselt zu neuem Branch' },
+            { category: 'git', icon: '🔀', command: 'git log --oneline', description: 'Zeigt Commit-History kompakt' },
+            { category: 'git', icon: '🔀', command: 'git merge [branch]', description: 'Mergt einen Branch in den aktuellen' },
+            { category: 'git', icon: '🔀', command: 'git stash', description: 'Zwischenspeichert unvercomitete Änderungen' },
+            { category: 'git', icon: '🔀', command: 'git diff', description: 'Zeigt Änderungen im Detail' },
+
+            // Docker
+            { category: 'docker', icon: '🐳', command: 'sudo docker ps', description: 'Zeigt alle laufenden Container' },
+            { category: 'docker', icon: '🐳', command: 'sudo docker images', description: 'Zeigt alle Docker-Images' },
+            { category: 'docker', icon: '🐳', command: 'sudo docker pull [image]', description: 'Lädt ein Docker-Image herunter' },
+            { category: 'docker', icon: '🐳', command: 'sudo docker run -d -p 80:80 [image]', description: 'Startet einen Container im Hintergrund' },
+            { category: 'docker', icon: '🐳', command: 'sudo docker stop [container]', description: 'Stoppt einen Container' },
+            { category: 'docker', icon: '🐳', command: 'sudo docker rm [container]', description: 'Löscht einen Container' },
+            { category: 'docker', icon: '🐳', command: 'sudo docker logs [container]', description: 'Zeigt die Logs eines Containers' },
+            { category: 'docker', icon: '🐳', command: 'sudo docker build -t [name] .', description: 'Baut ein neues Docker-Image' },
+            { category: 'docker', icon: '🐳', command: 'sudo docker exec -it [container] bash', description: 'Öffnet Shell im laufenden Container' },
+            { category: 'docker', icon: '🐳', command: 'sudo docker-compose up -d', description: 'Startet Docker-Compose Services im Hintergrund' },
+            { category: 'docker', icon: '🐳', command: 'sudo docker system prune', description: 'Bereinigt nicht mehr genutzte Docker-Ressourcen' },
+
+            // Firewall
+            { category: 'security', icon: '🛡️', command: 'sudo ufw status', description: 'Zeigt den Status der UFW-Firewall' },
+            { category: 'security', icon: '🛡️', command: 'sudo ufw allow 80', description: 'Ermöglicht Port 80' },
+            { category: 'security', icon: '🛡️', command: 'sudo ufw enable', description: 'Aktiviert die UFW-Firewall' },
+            { category: 'security', icon: '🛡️', command: 'sudo ufw disable', description: 'Deaktiviert die UFW-Firewall' },
+            { category: 'security', icon: '🛡️', command: 'sudo ufw allow ssh', description: 'Ermöglicht SSH-Zugriff' },
+            { category: 'security', icon: '🛡️', command: 'sudo ufw deny 23', description: 'Blockiert Port 23 (Telnet)' },
+            { category: 'security', icon: '🛡️', command: 'sudo ufw delete allow 80', description: 'Entfernt Regel für Port 80' },
+            { category: 'security', icon: '🛡️', command: 'sudo ufw reload', description: 'Lädt Firewall-Regeln neu' },
+
+            // Cron Jobs
+            { category: 'cron', icon: '⏰', command: 'crontab -e', description: 'Bearbeiten der Cron-Jobs' },
+            { category: 'cron', icon: '⏰', command: 'crontab -l', description: 'Listet die Cron-Jobs' },
+            { category: 'cron', icon: '⏰', command: '0 5 * * * /script.sh', description: 'Cron-Beispiel: Jeden Tag um 5 Uhr' },
+            { category: 'cron', icon: '⏰', command: '*/5 * * * * /script.sh', description: 'Alle 5 Minuten ausführen' },
+            { category: 'cron', icon: '⏰', command: 'sudo service cron restart', description: 'Startet den Cron-Dienst neu' },
+            { category: 'cron', icon: '⏰', command: 'crontab -r', description: 'Löscht alle Cron-Jobs' },
+
+            // Logs & Debugging
+            { category: 'logs', icon: '📋', command: 'journalctl -xe', description: 'Zeigt die neuesten Systemlogs' },
+            { category: 'logs', icon: '📋', command: 'tail -f /var/log/syslog', description: 'Überwacht Logs in Echtzeit' },
+            { category: 'logs', icon: '📋', command: 'cat /var/log/auth.log', description: 'Zeigt Authentifizierungslogs' },
+            { category: 'logs', icon: '📋', command: 'grep -i "error" /var/log/syslog', description: 'Sucht nach "error" in Logs' },
+            { category: 'logs', icon: '📋', command: 'dmesg | tail', description: 'Zeigt Kernel-Logs' },
+            { category: 'logs', icon: '📋', command: 'lsof -i :80', description: 'Zeigt Prozesse auf Port 80' },
+            { category: 'logs', icon: '📋', command: 'sudo tail -n 50 /var/log/syslog', description: 'Zeigt die letzten 50 Zeilen' },
+            { category: 'logs', icon: '📋', command: 'journalctl --since "2024-01-01"', description: 'Zeigt Logs ab einem bestimmten Datum' },
+
+            // Prozess-Management
+            { category: 'process', icon: '📊', command: 'ps aux', description: 'Zeigt alle laufenden Prozesse' },
+            { category: 'process', icon: '📊', command: 'ps -ef | grep [prozess]', description: 'Sucht nach einem spezifischen Prozess' },
+            { category: 'process', icon: '📊', command: 'kill [pid]', description: 'Tötet einen Prozess' },
+            { category: 'process', icon: '📊', command: 'kill -9 [pid]', description: 'Erzwingt das Beenden eines Prozesses' },
+            { category: 'process', icon: '📊', command: 'pkill [prozess]', description: 'Tötet Prozesse nach Name' },
+            { category: 'process', icon: '📊', command: 'bg', description: 'Setzt gestoppte Prozesse fort' },
+            { category: 'process', icon: '📊', command: 'fg', description: 'Holt Prozess zurück in den Vordergrund' },
+            { category: 'process', icon: '📊', command: 'nohup [befehl] &', description: 'Startet Prozess, der im Hintergrund bleibt' },
+        ];
+
+        // Category Metadata
+        const categoryMeta = {
+            system: { name: 'Systemverwaltung', icon: '⚙️' },
+            apt: { name: 'Paketverwaltung (APT)', icon: '📦' },
+            services: { name: 'Systemctl & Dienste', icon: '🔄' },
+            files: { name: 'Dateiverwaltung', icon: '📁' },
+            network: { name: 'Netzwerk', icon: '🌐' },
+            permissions: { name: 'Berechtigungen', icon: '🔐' },
+            git: { name: 'Git & Version Control', icon: '🔀' },
+            docker: { name: 'Docker', icon: '🐳' },
+            security: { name: 'Firewall & Sicherheit', icon: '🛡️' },
+            cron: { name: 'Cron Jobs', icon: '⏰' },
+            logs: { name: 'Logs & Debugging', icon: '📋' },
+            process: { name: 'Prozess-Management', icon: '📊' }
+        };
+
+        let currentCategory = 'all';
+        let searchTerm = '';
+
+        // Initialize
+        function init() {
+            renderCategoryTabs();
+            renderCommands();
+            updateStats();
+
+            // Search input
+            document.getElementById('searchInput').addEventListener('input', (e) => {
+                searchTerm = e.target.value.toLowerCase();
+                renderCommands();
+            });
+        }
+
+        // Render Category Tabs
+        function renderCategoryTabs() {
+            const tabsContainer = document.getElementById('categoryTabs');
+            const categories = [...new Set(commands.map(c => c.category))];
+
+            let html = `
+                <div class="category-tab ${currentCategory === 'all' ? 'active' : ''}" onclick="filterByCategory('all')">
+                    <span class="tab-icon">🐧</span>
+                    <span>Alle Befehle</span>
+                    <span class="tab-count">${commands.length}</span>
+                </div>
+            `;
+
+            categories.forEach(cat => {
+                const meta = categoryMeta[cat];
+                const count = commands.filter(c => c.category === cat).length;
+                html += `
+                    <div class="category-tab ${currentCategory === cat ? 'active' : ''}" onclick="filterByCategory('${cat}')">
+                        <span class="tab-icon">${meta.icon}</span>
+                        <span>${meta.name}</span>
+                        <span class="tab-count">${count}</span>
+                    </div>
+                `;
+            });
+
+            tabsContainer.innerHTML = html;
+        }
+
+        // Filter by Category
+        function filterByCategory(category) {
+            currentCategory = category;
+            renderCategoryTabs();
+            renderCommands();
+            updateStats();
+
+            // Scroll to content on mobile
+            if (window.innerWidth <= 768) {
+                document.querySelector('.content-area').scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        // Render Commands
+        function renderCommands() {
+            const grid = document.getElementById('commandGrid');
+            const countEl = document.getElementById('commandCount');
+            const nameEl = document.getElementById('activeCategoryName');
+            const iconEl = document.getElementById('activeIcon');
+
+            let filtered = commands;
+
+            // Filter by category
+            if (currentCategory !== 'all') {
+                filtered = filtered.filter(c => c.category === currentCategory);
+            }
+
+            // Filter by search
+            if (searchTerm) {
+                filtered = filtered.filter(c =>
+                    c.command.toLowerCase().includes(searchTerm) ||
+                    c.description.toLowerCase().includes(searchTerm)
+                );
+            }
+
+            // Update header
+            if (currentCategory === 'all') {
+                nameEl.textContent = 'Alle Befehle';
+                iconEl.textContent = '🐧';
+            } else {
+                const meta = categoryMeta[currentCategory];
+                nameEl.textContent = meta.name;
+                iconEl.textContent = meta.icon;
+            }
+
+            countEl.textContent = `${filtered.length} Befehl${filtered.length !== 1 ? 'e' : ''}`;
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `
+                    <div class="no-results" style="grid-column: 1 / -1;">
+                        <div class="no-results-icon">🔍</div>
+                        <div>Keine Befehle gefunden</div>
+                        <div style="margin-top: 0.5rem; font-size: 0.8rem;">Versuche einen anderen Suchbegriff</div>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = filtered.map((cmd, index) => `
+                <div class="command-card" style="animation-delay: ${index * 0.02}s">
+                    <div class="command-header">
+                        <div class="command-text">
+                            <span class="prompt-symbol">$</span>
+                            ${escapeHtml(cmd.command)}
+                        </div>
+                        <button class="copy-btn" onclick="copyCommand(this, '${escapeForAttr(cmd.command)}')">Kopieren</button>
+                    </div>
+                    <div class="command-description">${escapeHtml(cmd.description)}</div>
+                </div>
+            `).join('');
+        }
+
+        // Copy Command
+        function copyCommand(btn, command) {
+            navigator.clipboard.writeText(command).then(() => {
+                btn.textContent = 'Kopiert!';
+                btn.classList.add('copied');
+                showToast();
+
                 setTimeout(() => {
-                    button.textContent = 'Kopieren';
-                    button.classList.remove('copied');
+                    btn.textContent = 'Kopieren';
+                    btn.classList.remove('copied');
                 }, 2000);
-            }).catch(err => {
-                // Fallback für ältere Browser
-                const textArea = document.createElement('textarea');
-                textArea.value = commandText;
-                document.body.appendChild(textArea);
-                textArea.select();
+            }).catch(() => {
+                // Fallback
+                const textarea = document.createElement('textarea');
+                textarea.value = command;
+                document.body.appendChild(textarea);
+                textarea.select();
                 document.execCommand('copy');
-                document.body.removeChild(textArea);
-                
-                button.textContent = 'Kopiert!';
-                button.classList.add('copied');
+                document.body.removeChild(textarea);
+
+                btn.textContent = 'Kopiert!';
+                btn.classList.add('copied');
+                showToast();
+
                 setTimeout(() => {
-                    button.textContent = 'Kopieren';
-                    button.classList.remove('copied');
+                    btn.textContent = 'Kopieren';
+                    btn.classList.remove('copied');
                 }, 2000);
             });
         }
 
-        // Suche-Funktionalität
-        const searchInput = document.getElementById('searchInput');
-        
-        searchInput.addEventListener('input', (e) => {
-            const searchTerm = e.target.value.toLowerCase();
-            const commands = document.querySelectorAll('.command');
-            const categories = document.querySelectorAll('.category');
-            
-            if (!searchTerm) {
-                // Bei leerer Suche alle anzeigen
-                commands.forEach(command => {
-                    command.style.display = 'block';
-                });
-                categories.forEach(category => {
-                    category.style.display = 'block';
-                });
-                return;
-            }
-            
-            categories.forEach(category => {
-                const categoryCommands = category.querySelectorAll('.command');
-                let hasVisibleCommands = false;
-                
-                categoryCommands.forEach(command => {
-                    const commandText = command.querySelector('.command-text').textContent.toLowerCase();
-                    const description = command.querySelector('.command-description').textContent.toLowerCase();
-                    
-                    if (commandText.includes(searchTerm) || description.includes(searchTerm)) {
-                        command.style.display = 'block';
-                        hasVisibleCommands = true;
-                    } else {
-                        command.style.display = 'none';
-                    }
-                });
-                
-                // Zeige Kategorie nur wenn mindestens ein Befehl sichtbar ist
-                category.style.display = hasVisibleCommands ? 'block' : 'none';
-            });
-        });
+        // Show Toast
+        function showToast() {
+            const toast = document.getElementById('toast');
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2000);
+        }
+
+        // Update Stats
+        function updateStats() {
+            document.getElementById('catCount').textContent = Object.keys(categoryMeta).length;
+            document.getElementById('cmdCount').textContent = commands.length;
+            const meta = currentCategory === 'all' ? { name: 'Alle' } : categoryMeta[currentCategory];
+            document.getElementById('currentCat').textContent = meta.name || meta;
+        }
+
+        // Escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Escape for attribute
+        function escapeForAttr(text) {
+            return text.replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, '\\n');
+        }
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html>
